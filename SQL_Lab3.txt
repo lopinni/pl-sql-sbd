@@ -1,0 +1,55 @@
+-----190?
+
+DECLARE
+    CURSOR c1 IS SELECT DISTINCT COUNT(*) 
+        FROM egzaminy 
+        GROUP BY id_przedmiot 
+        ORDER BY 1 DESC;
+    CURSOR c2(nump NUMBER) IS SELECT nazwa_przedmiot
+        FROM przedmioty 
+        JOIN egzaminy ON egzaminy.id_przedmiot = przedmioty.id_przedmiot
+        GROUP BY nazwa_przedmiot
+        HAVING COUNT(id_egzamin) = nump;
+    vcount NUMBER;
+    
+BEGIN
+    OPEN c1;
+    IF c1%ISOPEN THEN
+        FETCH c1 INTO vcount;
+        WHILE c1%FOUND LOOP
+            EXIT WHEN c1%ROWCOUNT > 3;
+            Dbms_output.put_line(vcount) ;
+            FOR vc2 IN c2(vcount) LOOP
+                Dbms_output.put_line(vc2.nazwa_przedmiot);
+            END LOOP;
+            FETCH c1 INTO vcount;
+        END LOOP;
+    END IF;
+    --END LOOP;
+END;
+
+DECLARE
+    CURSOR c1 IS SELECT DISTINCT COUNT(*) 
+        FROM egzaminy 
+        GROUP BY id_przedmiot 
+        ORDER BY 1 DESC;
+    vcount NUMBER;
+    CURSOR c2 IS SELECT nazwa_przedmiot nazwap
+        FROM przedmioty 
+        JOIN egzaminy ON egzaminy.id_przedmiot = przedmioty.id_przedmiot
+        GROUP BY nazwa_przedmiot
+        HAVING COUNT(id_egzamin) = vcount ;
+BEGIN
+    OPEN c1;
+    IF c1%ISOPEN THEN
+        FETCH c1 INTO vcount;
+        WHILE c1%FOUND LOOP
+            EXIT WHEN c1%ROWCOUNT > 3;
+            DBMS_OUTPUT.put_line(vcount) ;
+            FOR vc2 IN c2 LOOP
+                DBMS_OUTPUT.put_line(vc2.nazwap);
+            END LOOP;
+            FETCH c1 INTO vcount;
+        END LOOP;
+    END IF;
+END;

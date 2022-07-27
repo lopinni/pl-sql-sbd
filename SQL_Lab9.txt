@@ -1,0 +1,39 @@
+-----224
+
+SET SERVEROUTPUT ON
+DECLARE
+    TYPE rec_osrodek IS RECORD (
+        ID osrodki.id_osrodek%TYPE,
+        nazwa osrodki.nazwa_osrodek%TYPE
+    );
+    TYPE c_osrodki_typ IS TABLE OF rec_osrodek;
+    c_osrodki c_osrodki_typ := c_osrodki_typ();
+    CURSOR cur_osrodki IS SELECT id_osrodek, nazwa_osrodek FROM osrodki;
+    i NUMBER := 1;
+    FUNCTION legzNieZero(ido NUMBER) RETURN BOOLEAN IS
+        legz NUMBER;
+    BEGIN
+        SELECT COUNT(id_egzamin) INTO legz FROM egzaminy WHERE id_osrodek = ido;
+        IF legz = 0 THEN RETURN FALSE; ELSE RETURN TRUE; END IF;
+    END legzNieZero;
+BEGIN
+    FOR vc1 IN cur_osrodki LOOP
+        c_osrodki.EXTEND; 
+        c_osrodki(i) := vc1;
+        i := i+1;
+    END LOOP;
+    FOR j IN 1..c_osrodki.COUNT LOOP
+        DBMS_OUTPUT.put_line(c_osrodki(j).ID || ' - ' || c_osrodki(j).nazwa); 
+    END LOOP;
+    DBMS_OUTPUT.put_line('-----');
+    FOR vc2 IN cur_osrodki LOOP
+        IF legzNieZero(vc2.id_osrodek) = FALSE THEN
+            c_osrodki.DELETE(vc2.id_osrodek);
+        END IF;
+    END LOOP;
+    i := c_osrodki.FIRST;
+    WHILE i IS NOT NULL LOOP
+        DBMS_OUTPUT.put_line(c_osrodki(i).ID || ' - ' || c_osrodki(i).nazwa);
+        i := c_osrodki.NEXT(i);
+    END LOOP;
+END;

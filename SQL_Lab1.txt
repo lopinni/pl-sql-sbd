@@ -1,0 +1,106 @@
+--91
+
+select o.ID_OSRODEK, o.nazwa_osrodek, o.MIASTO
+from OSRODKI o
+where o.ID_OSRODEK not in (
+    Select distinct o2.ID_OSRODEK
+    from OSRODKI o2
+             inner join EGZAMINY E on o2.ID_OSRODEK = E.ID_OSRODEK
+    where E.ID_STUDENT = 0000015
+);
+
+--92
+
+select s.ID_STUDENT, nazwisko, imie
+from STUDENCI s
+where s.ID_STUDENT not in (
+    select distinct s2.id_student
+    from STUDENCI s2
+             join EGZAMINY E on s2.ID_STUDENT = E.ID_STUDENT
+             join PRZEDMIOTY P on P.ID_PRZEDMIOT = E.ID_PRZEDMIOT
+    where p.NAZWA_PRZEDMIOT = 'Bazy danych');
+
+--93
+
+select o.*
+from OSRODKI o
+where not exists(
+        select o2.*
+        from OSRODKI o2
+                 inner join EGZAMINY E on o2.ID_OSRODEK = E.ID_OSRODEK
+                 inner join PRZEDMIOTY P on P.ID_PRZEDMIOT = E.ID_PRZEDMIOT
+        where NAZWA_PRZEDMIOT = 'Bazy danych'
+          and o.ID_OSRODEK = o2.ID_OSRODEK
+    );
+
+--94
+
+select distinct s.ID_STUDENT, NAZWISKO, IMIE
+from STUDENCI s
+         inner join EGZAMINY E on s.ID_STUDENT = E.ID_STUDENT
+         inner join PRZEDMIOTY P on P.ID_PRZEDMIOT = E.ID_PRZEDMIOT
+where exists(
+        select *
+        from EGZAMINY e2
+                 join PRZEDMIOTY p2 on e2.ID_PRZEDMIOT = p2.ID_PRZEDMIOT
+                 join OSRODKI O on O.ID_OSRODEK = e2.ID_OSRODEK
+        where o.NAZWA_OSRODEK = 'CKMP'
+          and p.NAZWA_PRZEDMIOT = 'Bazy danych'
+          and e2.ID_STUDENT = s.ID_STUDENT
+    )
+  and exists(
+        select *
+        from EGZAMINY e3
+                 join PRZEDMIOTY p3 on e3.ID_PRZEDMIOT = p3.ID_PRZEDMIOT
+                 join OSRODKI O2 on O2.ID_OSRODEK = e3.ID_OSRODEK
+        where o2.NAZWA_OSRODEK = 'LBS'
+          and p.NAZWA_PRZEDMIOT = 'Bazy danych'
+          and e3.ID_STUDENT = s.ID_STUDENT
+    )
+
+
+Zadanie 93
+
+SELECT o.id_osrodek, nazwa_osrodek, miasto
+FROM Osrodki o
+MINUS
+SELECT o.id_osrodek, nazwa_osrodek, miasto
+FROM Osrodki o
+INNER JOIN Egzaminy e ON o.id_osrodek = e.id_osrodek
+INNER JOIN Przedmioty p ON e.id_przedmiot = p.id_przedmiot
+WHERE LOWER(p.nazwa_przedmiot) = 'bazy danych';
+
+Zadanie 96
+
+SELECT EGZAMINY.ID_PRZEDMIOT, COUNT(EGZAMINY.ID_PRZEDMIOT), P.NAZWA_PRZEDMIOT FROM EGZAMINY
+LEFT JOIN PRZEDMIOTY P ON P.ID_PRZEDMIOT = EGZAMINY.ID_PRZEDMIOT
+GROUP BY EGZAMINY.ID_PRZEDMIOT, P.NAZWA_PRZEDMIOT
+HAVING COUNT(EGZAMINY.ID_PRZEDMIOT) = (SELECT MAX(COUNT(EGZAMINY.ID_PRZEDMIOT)) FROM EGZAMINY GROUP BY EGZAMINY.ID_PRZEDMIOT);
+
+Zadanie 100
+
+SELECT
+    p.nazwa_przedmiot, o.id_osrodek, o.nazwa_osrodek, e.data_egzamin
+FROM
+    Egzaminy e
+JOIN
+(
+    SELECT 
+        e.id_przedmiot AS przedmiot, MAX(e.data_egzamin) AS data_egz
+    FROM
+        Egzaminy e
+    GROUP BY
+        e.id_przedmiot
+)
+ON 
+    e.id_przedmiot = przedmiot
+AND
+    e.data_egzamin = data_egz
+JOIN
+    Osrodki o
+ON
+    o.id_osrodek = e.id_osrodek
+JOIN
+    Przedmioty p
+ON
+    p.id_przedmiot = e.id_przedmiot

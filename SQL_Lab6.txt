@@ -1,0 +1,83 @@
+-----257
+
+DECLARE
+    CURSOR C1 IS SELECT s.id_student, imie, nazwisko 
+    FROM STUDENCI S;
+    
+FUNCTION getStudentExamPoints(idStudent NUMBER) RETURN NUMBER IS sumPoints NUMBER;
+BEGIN 
+    SELECT SUM(punkty) INTO sumPoints FROM egzaminy e2 WHERE e2.id_student = idStudent;
+    RETURN sumPoints;
+END;
+BEGIN
+ 
+    FOR vc1 IN C1
+        LOOP
+            IF(getStudentExamPoints(vc1.id_student) IS NULL) THEN
+                 DBMS_OUTPUT.PUT_LINE(vc1.IMIE || ' ' || vc1.NAZWISKO || ' nie podszedl do egzaminow');
+                ELSE
+                 DBMS_OUTPUT.PUT_LINE(vc1.IMIE || ' ' || vc1.NAZWISKO || ' uzykal :' || getStudentExamPoints(vc1.ID_STUDENT) || ' punktow');
+ 
+            END IF;
+        END LOOP;
+END ;
+
+-----261
+
+DECLARE
+
+    CURSOR Cst IS SELECT id_student FROM (
+            SELECT id_student, COUNT(DISTINCT id_przedmiot) AS zdane
+            FROM egzaminy WHERE zdal = 'T' GROUP BY id_student)
+        WHERE zdane = (SELECT COUNT(id_przedmiot) FROM przedmioty);
+        
+    PROCEDURE Wstaw(stid NUMBER, data_e DATE) IS
+    BEGIN
+        UPDATE studenci
+        SET nr_ecdl = stid, data_ecdl = data_e
+        WHERE studenci.id_student = stid;
+    END;
+    
+    FUNCTION Ostatni_egz(studid NUMBER) RETURN DATE IS
+        ostatni DATE;
+    BEGIN
+        SELECT MAX(data_egzamin) INTO ostatni FROM egzaminy WHERE id_student = studid AND UPPER(zdal) = 'T';
+        RETURN ostatni;
+    END;
+    
+BEGIN
+
+    FOR stud IN Cst LOOP
+        Wstaw(stud.id_student,Ostatni_egz(stud.id_student));
+    END LOOP;
+    
+END;
+
+-----259
+
+CREATE TABLE TLSEgzaminy AS 
+    SELECT s.id_student, s.imie, s.nazwisko, 
+            COUNT(DISTINCT e.id_egzamin) AS l_egzaminow
+        FROM egzaminy e JOIN studenci s ON s.id_student = e.id_student
+        GROUP BY s.id_student, s.imie, s.nazwisko  
+
+CREATE OR REPLACE PROCEDURE WstawTLSEgz(
+        ids NUMBER,n VARCHAR,i VARCHAR,l NUMBER) IS
+BEGIN
+    UPDATE TLSEgzaminy
+    SET imie = i, nazwisko = n, l_egzaminow = l
+    WHERE id_student = ids;
+END WstawTLSEgz;
+
+CREATE OR REPLACE TRIGGER TRegzaminy BEFORE INSERT ON egzaminy FOR EACH ROW
+    DECLARE
+        nw VARCHAR(255);
+        im VARCHAR(255);
+        legz VARCHAR(255);
+    BEGIN
+        SELECT nazwisko, imie INTO nw, im FROM studenci 
+            WHERE id_student = :NEW.id_student;
+        SELECT COUNT(DISTINCT id_egzamin) INTO legz FROM egzaminy
+            WHERE id_student = :NEW.id_student;
+        WstawTLSEgz(:NEW.id_student,nw,im,legz);
+    END;

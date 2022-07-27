@@ -1,0 +1,92 @@
+-----194
+
+DECLARE
+    newnum NUMBER(3,2) ;
+    CURSOR c1 IS SELECT zdal FROM egzaminy FOR UPDATE ;
+BEGIN
+    FOR vc1 IN c1 LOOP
+        IF vc1.zdal = 'N' THEN
+            newnum := ROUND(DBMS_RANDOM.VALUE(2,3), 2);
+            UPDATE egzaminy e SET punkty = newnum
+                    WHERE CURRENT OF c1 ;
+        ELSE
+            newnum := ROUND(DBMS_RANDOM.VALUE(3,5.01), 2);
+            UPDATE egzaminy e SET punkty = newnum
+                    WHERE CURRENT OF c1 ;
+        END IF ;
+    END LOOP ;
+    
+END;
+
+-----192
+
+DECLARE
+    
+    CURSOR CCKMP IS SELECT id_osrodek FROM osrodki WHERE nazwa_osrodek = 'CKMP';
+ 
+    CURSOR Cegzaminy(ido NUMBER) IS SELECT * FROM(
+        SELECT o.id_osrodek, COUNT(e.id_egzamin) AS legz
+            FROM studenci s
+            JOIN egzaminy e ON e.id_student = s.id_student
+            JOIN osrodki o ON o.id_osrodek = e.id_osrodek
+            WHERE UPPER(o.nazwa_osrodek) = 'CKMP' AND o.id_osrodek = ido
+            GROUP BY s.id_student, o.id_osrodek
+            ORDER BY o.id_osrodek, COUNT(e.id_egzamin) DESC)
+        WHERE ROWNUM <=2
+        ORDER BY ROWNUM;
+        
+    CURSOR Cstudenci(ido NUMBER, leg NUMBER) IS SELECT a.* FROM(
+        SELECT s.id_student, s.imie, s.nazwisko, COUNT(e.id_egzamin) AS legz
+            FROM studenci s
+            JOIN egzaminy e ON e.id_student = s.id_student
+            JOIN osrodki o ON o.id_osrodek = e.id_osrodek
+            --WHERE UPPER(o.nazwa_osrodek) = 'CKMP' AND 
+            WHERE o.id_osrodek = ido
+            GROUP BY s.id_student, o.id_osrodek, s.imie, s.nazwisko
+            ORDER BY o.id_osrodek, COUNT(e.id_egzamin) DESC) a
+        WHERE legz = leg;
+    
+BEGIN
+ 
+    DBMS_OUTPUT.put_line('------------------------------------');
+    FOR daneO IN CCKMP LOOP
+        DBMS_OUTPUT.put_line('Ośrodek CKMP o ID: '||daneO.id_osrodek);
+        
+        FOR daneE IN Cegzaminy(daneO.id_osrodek) LOOP
+            FOR daneS IN Cstudenci(daneO.id_osrodek,daneE.legz) LOOP
+                DBMS_OUTPUT.put_line(daneS.id_student||' '||daneS.nazwisko||' '||daneS.imie);
+            END LOOP;
+        END LOOP;
+        
+        DBMS_OUTPUT.put_line('------------------------------------');
+    END LOOP;
+ 
+END;
+
+
+-----207
+
+DECLARE
+    Uwaga EXCEPTION;
+    CURSOR Cegzaminatorzy IS SELECT DISTINCT e1.id_egzaminator, 
+                                                e1.nazwisko, 
+                                                e1.imie, 
+                                                e2.data_egzamin, 
+                                                COUNT(e2.id_student) AS legz
+        FROM egzaminatorzy e1 JOIN egzaminy e2
+        ON e1.id_egzaminator = e2.id_egzaminator
+        GROUP BY e1.id_egzaminator, e1.nazwisko, e1.imie, e2.data_egzamin;
+BEGIN
+    FOR c1 IN Cegzaminatorzy LOOP
+        BEGIN
+            IF c1.legz > 5 THEN RAISE Uwaga; END IF;
+        EXCEPTION
+            WHEN Uwaga THEN
+                Dbms_output.Put_line(c1.id_egzaminator || ' ' ||
+                                    c1.nazwisko || ' ' ||
+                                    c1.imie || ' ' ||
+                                    c1.data_egzamin || ' ' ||
+                                    c1.legz);
+        END;
+    END LOOP;
+END;

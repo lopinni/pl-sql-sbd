@@ -1,0 +1,26 @@
+-----209
+
+DECLARE
+    ido NUMBER;
+    legz NUMBER;
+    brak_egz EXCEPTION;
+    CURSOR C1 IS SELECT o.id_osrodek, COUNT(id_egzamin) legz
+            FROM egzaminy e RIGHT JOIN osrodki o
+            ON o.id_osrodek = e.id_osrodek
+            WHERE UPPER(nazwa_osrodek) = 'LBS'
+            GROUP BY o.id_osrodek;
+BEGIN
+    SELECT DISTINCT 1 INTO ido FROM osrodki
+        WHERE UPPER(nazwa_osrodek) = 'LBS';
+    FOR vc1 IN c1 LOOP
+        BEGIN
+            IF vc1.legz = 0 THEN RAISE brak_egz; END IF;
+            Dbms_output.put_line('Ośrodek o id: '||vc1.id_osrodek);
+            Dbms_output.put_line('Liczba egzaminów: '||vc1.legz);
+        EXCEPTION WHEN brak_egz THEN
+            Dbms_output.put_line('Nie przeprowadzono tu egzaminów');
+        END;
+    END LOOP;
+EXCEPTION WHEN NO_DATA_FOUND THEN
+    Dbms_output.put_line('Nie ma takiego ośrodka');
+END;

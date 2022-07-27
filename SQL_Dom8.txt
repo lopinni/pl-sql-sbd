@@ -1,0 +1,61 @@
+-----272
+
+CREATE OR REPLACE PACKAGE Pcg_Intg_Egzaminy AS
+ 
+    FUNCTION TooSoon(data_e DATE) RETURN BOOLEAN;  
+    FUNCTION AlreadyPassed(data_e DATE, ids NUMBER, idp NUMBER) RETURN BOOLEAN;
+    
+END Pcg_Intg_Egzaminy;
+ 
+CREATE OR REPLACE PACKAGE BODY Pcg_Intg_Egzaminy AS
+ 
+    FUNCTION TooSoon(data_e DATE) RETURN BOOLEAN IS
+    BEGIN
+        IF data_e > SYSDATE THEN RETURN TRUE;
+        ELSE RETURN FALSE;
+        END IF;
+    END TooSoon;
+    
+    FUNCTION AlreadyPassed(data_e DATE, ids NUMBER, idp NUMBER) RETURN BOOLEAN IS
+    data_zdanego DATE;
+    BEGIN
+        SELECT data_egzamin INTO data_zdanego FROM egzaminy WHERE
+                id_student = ids AND id_przedmiot = idp AND UPPER(zdal) = 'T';
+        IF data_e > (data_zdanego) THEN RETURN TRUE;
+        ELSE RETURN FALSE;
+        END IF;
+    END AlreadyPassed;
+ 
+END Pcg_Intg_Egzaminy;
+
+DECLARE
+    CURSOR CWszystkieEgz IS SELECT data_egzamin FROM egzaminy
+        FOR UPDATE OF data_egzamin;
+    CURSOR CNieZdaneEgz IS 
+            SELECT id_student, id_przedmiot, data_egzamin
+            FROM egzaminy
+            WHERE UPPER(zdal) = 'N' 
+            FOR UPDATE OF data_egzamin;
+    data_zdanego DATE;
+BEGIN
+    FOR e IN CWszystkieEgz LOOP
+        IF Pcg_Intg_Egzaminy.TooSoon(
+                e.data_egzamin) THEN
+            UPDATE egzaminy SET data_egzamin = SYSDATE
+                WHERE CURRENT OF CWszystkieEgz;
+            COMMIT;
+        END IF;
+    END LOOP;
+    FOR e IN CNieZdaneEgz LOOP
+        IF Pcg_Intg_Egzaminy.AlreadyPassed(
+                e.data_egzamin,e.id_student,e.id_przedmiot) THEN
+            SELECT data_egzamin INTO data_zdanego FROM egzaminy WHERE
+                id_student = e.id_student 
+                AND id_przedmiot = e.id_przedmiot 
+                AND UPPER(zdal) = 'T';
+            UPDATE egzaminy SET data_egzamin = data_zdanego
+                WHERE CURRENT OF CNieZdaneEgz;
+            COMMIT;
+        END IF;
+    END LOOP;
+END;

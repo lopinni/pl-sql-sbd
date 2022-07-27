@@ -1,0 +1,219 @@
+-----188
+
+DECLARE
+    i NUMBER DEFAULT 0;
+    CURSOR CEgzaminatorzy IS SELECT id_egzaminator, nazwisko, imie
+        FROM Egzaminatorzy ORDER BY nazwisko, imie;
+BEGIN
+    FOR dane IN CEgzaminatorzy LOOP
+        i := i+1;
+        dbms_output.put_line(
+            i||' '||dane.nazwisko||' '||dane.imie||' '||dane.id_egzaminator);
+    END LOOP;
+END;
+
+-----189
+
+DECLARE
+    CURSOR Clista IS SELECT nazwa_osrodek, COUNT(id_egzamin) AS legz
+        FROM osrodki o JOIN egzaminy e ON o.id_osrodek = e.id_osrodek
+        GROUP BY nazwa_osrodek ORDER BY legz;
+        
+BEGIN
+    BEGIN
+        FOR dane IN Clista LOOP IF dane.legz < 5 THEN
+			Dbms_output.put_line(dane.nazwa_osrodek||' '||dane.legz);
+        END IF; END LOOP;
+    END;
+    Dbms_output.put_line('----------');
+    BEGIN
+        FOR dane IN Clista LOOP IF dane.legz >= 5 AND dane.legz <= 10 THEN
+			Dbms_output.put_line(dane.nazwa_osrodek||' '||dane.legz);
+        END IF; END LOOP;
+    END;
+    Dbms_output.put_line('----------');
+    BEGIN
+        FOR dane IN Clista LOOP IF dane.legz > 10 THEN
+			Dbms_output.put_line(dane.nazwa_osrodek||' '||dane.legz);
+        END IF; END LOOP;
+    END;
+END;
+
+-----190
+
+DECLARE
+    i NUMBER DEFAULT 0;
+    CURSOR Cprzedmioty IS SELECT nazwa_przedmiot, COUNT(id_egzamin) AS legz
+        FROM przedmioty p JOIN egzaminy e ON p.id_przedmiot = e.id_przedmiot
+        GROUP BY nazwa_przedmiot ORDER BY legz DESC;
+        
+BEGIN
+    FOR dane IN Cprzedmioty LOOP
+        i := i + 1;
+        Dbms_output.put_line(dane.nazwa_przedmiot||' '||dane.legz);
+        EXIT WHEN i = 3;
+    END LOOP;
+END;
+
+-----191
+
+DECLARE
+    CURSOR Cstudenci IS SELECT data_egzamin, imie, nazwisko
+        FROM egzaminy e JOIN studenci s ON e.id_student = s.id_student
+        WHERE data_egzamin
+        BETWEEN (SELECT MAX(data_egzamin) FROM egzaminy) - 3
+        AND (SELECT MAX(data_egzamin) FROM egzaminy)
+        ORDER BY data_egzamin DESC;
+  
+BEGIN
+    FOR dane IN Cstudenci LOOP
+        Dbms_output.put_line(dane.data_egzamin||' '||dane.imie||' '||dane.nazwisko);
+    END LOOP;
+END;
+
+-----192
+
+DECLARE
+    CURSOR CCKMP IS SELECT id_osrodek FROM osrodki WHERE nazwa_osrodek = 'CKMP';
+    
+    ids NUMBER;
+    nw studenci.nazwisko%TYPE;
+    im studenci.imie%TYPE;
+    legz NUMBER;
+    numrow NUMBER;
+  
+BEGIN
+    FOR dane IN CCKMP LOOP FOR i IN 1..2 LOOP
+    
+        SELECT * INTO ids, nw, im, legz, numrow FROM( 
+            SELECT a.*, ROWNUM rnum FROM(
+                SELECT s.id_student, s.nazwisko, s.imie, COUNT(id_egzamin) AS egzaminy
+                    FROM studenci s JOIN egzaminy e ON s.id_student = e.id_student
+                    WHERE id_osrodek = dane.id_osrodek
+                    GROUP BY s.nazwisko, s.imie, s.id_student
+                    ORDER BY egzaminy DESC) a
+            WHERE ROWNUM <=i)
+        WHERE rnum >=i;
+            
+        Dbms_output.put_line(dane.id_osrodek||' CKMP '||ids||' '||nw||' '||im);
+            
+    END LOOP; END LOOP;
+END;
+
+-----193 (EX)
+
+DECLARE
+    idp NUMBER := 0;
+    DATA_FOUND EXCEPTION;
+
+BEGIN
+    SELECT id_przedmiot INTO idp FROM przedmioty WHERE id_przedmiot = 10;
+    IF idp = 10 THEN RAISE DATA_FOUND; END IF;
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+        INSERT INTO przedmioty (id_przedmiot, nazwa_przedmiot) VALUES (10, 'Hurtownie danych');
+    WHEN DATA_FOUND THEN  
+        Dbms_output.put_line('Dany przedmiot już istnieje');
+END;
+
+-----193 (CU)
+
+DECLARE
+    CURSOR idp IS 
+        SELECT NVL(nazwa_przedmiot, 'NULL') AS np FROM przedmioty WHERE id_przedmiot = 10;
+
+BEGIN
+    FOR dane IN idp LOOP IF dane.np = 'NULL' THEN
+        INSERT INTO przedmioty (id_przedmiot, nazwa_przedmiot) 
+                VALUES (10, 'Hurtownie danych');
+        ELSE Dbms_output.put_line('Dany przedmiot już istnieje');
+    END IF; END LOOP;
+END;
+
+-----194
+
+DECLARE
+    CURSOR zdane IS SELECT id_egzamin, zdal FROM egzaminy;
+
+BEGIN
+    FOR dane IN zdane LOOP
+        IF LOWER(dane.zdal) = 't' THEN 
+        UPDATE Egzaminy SET punkty = round(dbms_random.value(3,5),2) 
+                WHERE id_egzamin = dane.id_egzamin;
+        ELSE
+        UPDATE Egzaminy SET punkty = round(dbms_random.value(2,3),2)
+                WHERE id_egzamin = dane.id_egzamin;
+        END IF;
+    END LOOP;
+END;
+
+-----195
+
+DECLARE
+    CURSOR Cegzaminy IS 
+        SELECT s.id_student, s.nazwisko, s.imie, p.nazwa_przedmiot, COUNT(e.id_egzamin) AS legz
+            FROM studenci s
+            JOIN egzaminy e ON s.id_student = e.id_student
+            JOIN przedmioty p ON p.id_przedmiot = e.id_przedmiot
+            GROUP BY s.id_student, s.nazwisko, s.imie, p.nazwa_przedmiot
+            ORDER BY s.id_student;
+    id_ostatni NUMBER := 0;
+
+BEGIN
+    Dbms_output.put_line('----------');
+    FOR dane IN Cegzaminy LOOP 
+        IF dane.id_student != id_ostatni
+            THEN Dbms_output.put_line(dane.id_student||' '||dane.nazwisko||' '||dane.imie);
+                    Dbms_output.put_line(dane.nazwa_przedmiot||' '||dane.legz);
+            ELSE Dbms_output.put_line(dane.nazwa_przedmiot||' '||dane.legz);
+        END IF; 
+        id_ostatni := dane.id_student;
+    END LOOP;
+    Dbms_output.put_line('----------');
+END;
+
+-----196
+
+CREATE TRIGGER Tegz BEFORE INSERT OR UPDATE ON egzaminy FOR EACH ROW
+
+DECLARE
+    punkty egzaminy.punkty%TYPE;
+    
+BEGIN
+    IF LOWER(:new.zdal) = 't'
+        THEN :new.punkty := round(dbms_random.value(3,5),2);
+        ELSE :new.punkty := round(dbms_random.value(2,3),2);
+    END IF;
+END;
+
+-----198
+
+CREATE TABLE TLMOsrodki (
+    rok           NUMBER,
+    miesiac       NUMBER,
+    id_osrodek    NUMBER,
+    nazwa_osrodek VARCHAR(255),
+    liczba        NUMBER
+);
+DECLARE
+    CURSOR Cosrodki IS SELECT id_osrodek, nazwa_osrodek FROM osrodki;
+    CURSOR Cegzaminy(ido NUMBER) IS SELECT 
+            EXTRACT(YEAR FROM data_egzamin) AS rok,
+            EXTRACT(MONTH FROM data_egzamin) AS miesiac,
+            COUNT(id_egzamin) AS legz
+        FROM egzaminy
+        WHERE id_osrodek = ido
+        GROUP BY EXTRACT(YEAR FROM data_egzamin), 
+                EXTRACT(MONTH FROM data_egzamin);
+BEGIN
+    FOR osrodki IN Cosrodki LOOP
+        FOR egzaminy IN Cegzaminy(osrodki.id_osrodek) LOOP
+            INSERT INTO TLMOsrodki VALUES (
+                egzaminy.rok,
+                egzaminy.miesiac,
+                osrodki.id_osrodek, 
+                osrodki.nazwa_osrodek,
+                egzaminy.legz
+            );
+        END LOOP;
+    END LOOP;
+END;

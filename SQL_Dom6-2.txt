@@ -1,0 +1,48 @@
+-----194
+
+DECLARE
+    vx NUMBER(3,2) ;
+    CURSOR c1 IS SELECT zdal FROM egzaminy FOR UPDATE ;
+BEGIN
+    FOR vc1 IN c1 LOOP
+        IF vc1.zdal = 'N' THEN
+            vx := ROUND(DBMS_RANDOM.VALUE(2,2.99), 2);
+            UPDATE egzaminy e SET punkty = vx
+                    WHERE CURRENT OF c1 ;
+        ELSE
+            vx := ROUND(DBMS_RANDOM.VALUE(3,5), 2);
+            UPDATE egzaminy e SET punkty = vx
+                    WHERE CURRENT OF c1 ;
+        END IF ;
+    END LOOP ;
+    
+END;
+
+-----198
+
+CREATE TABLE TLMOsrodki
+(
+    rok           NUMBER,
+    miesiac       NUMBER,
+    id_osrodek    NUMBER,
+    nazwa_osrodek VARCHAR2(50),
+    liczba        NUMBER
+);
+DECLARE
+    CURSOR C1 IS SELECT ID_OSRODEK, NAZWA_OSRODEK
+                 FROM OSRODKI;
+    CURSOR C2(idOsrodek NUMBER) IS SELECT EXTRACT(YEAR FROM DATA_EGZAMIN) AS rok,
+                                          EXTRACT(MONTH FROM DATA_EGZAMIN) AS miesiac,
+                                          COUNT(ID_EGZAMIN) AS liczba
+                                   FROM EGZAMINY
+                                   WHERE ID_OSRODEK = idOsrodek
+                                   GROUP BY EXTRACT(YEAR FROM DATA_EGZAMIN), EXTRACT(MONTH FROM DATA_EGZAMIN);
+BEGIN
+    FOR i IN C1
+        LOOP
+            FOR i2 IN C2(i.ID_OSRODEK)
+                LOOP
+                    INSERT INTO TLMOsrodki VALUES (i2.rok, i2.miesiac, i.ID_OSRODEK, i.NAZWA_OSRODEK, i2.liczba);
+                END LOOP;
+        END LOOP;
+END;

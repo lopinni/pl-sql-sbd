@@ -1,0 +1,65 @@
+-----1
+
+DECLARE
+    CURSOR c1 IS SELECT zdal FROM egzaminy FOR UPDATE ;
+    vpt NUMBER(1) := 2 ;
+BEGIN
+    FOR vc1 IN c1 LOOP
+        IF vc1.zdal = 'N' THEN
+            UPDATE egzaminy e SET punkty = vpt 
+                    WHERE CURRENT OF c1 ;
+        END IF ;
+    END LOOP ;
+END ;
+
+-----2
+
+DECLARE
+    vx NUMBER ;
+BEGIN
+    SELECT 1 INTO vx FROM egzaminatorzy WHERE nazwisko = 'MuryjaS';
+    DBMS_OUTPUT.put_line(vx);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN 
+            DBMS_OUTPUT.put_line('There are no records');
+    WHEN DUP_VAL_ON_INDEX THEN NULL ;
+    WHEN TOO_MANY_ROWS THEN DBMS_OUTPUT.put_line('Many rows');
+END ;
+
+-----4
+
+DECLARE
+    vx NUMBER ;
+BEGIN
+    DBMS_OUTPUT.put_line('Outer block') ;
+    BEGIN
+        SELECT 1 INTO vx FROM egzaminatorzy WHERE nazwisko = 'MuryjaS';
+        DBMS_OUTPUT.put_line(vx);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN 
+            DBMS_OUTPUT.put_line('There are no records');
+        WHEN TOO_MANY_ROWS THEN DBMS_OUTPUT.put_line('Many rows');
+    END ;
+    DBMS_OUTPUT.put_line('I am out of inner block') ;
+EXCEPTION
+    WHEN OTHERS THEN NULL ;
+END ;
+
+-----5
+
+DECLARE
+    vx NUMBER ;
+BEGIN
+    DBMS_OUTPUT.put_line('Outer block') ;
+    BEGIN
+        SELECT 1 INTO vx FROM egzaminatorzy WHERE nazwisko = 'MuryjaS';
+        DBMS_OUTPUT.put_line(vx);
+    EXCEPTION
+        WHEN TOO_MANY_ROWS THEN DBMS_OUTPUT.put_line('Many rows');
+    END ;
+    DBMS_OUTPUT.put_line('I am out of inner block') ;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN 
+            DBMS_OUTPUT.put_line('There are no records');
+    WHEN OTHERS THEN NULL ;
+END ;

@@ -1,0 +1,37 @@
+-----103
+
+SELECT p.NAZWA_PRZEDMIOT, s2.ID_STUDENT, s2.IMIE, s2.NAZWISKO, e.DATA_EGZAMIN
+FROM PRZEDMIOTY p
+         inner join EGZAMINY E ON p.ID_PRZEDMIOT = E.ID_PRZEDMIOT
+         inner join STUDENCI S2 ON S2.ID_STUDENT = E.ID_STUDENT
+WHERE e.DATA_EGZAMIN = (
+    SELECT MIN(e2.data_egzamin)
+    FROM EGZAMINY e2
+    WHERE e2.ID_PRZEDMIOT = e.ID_PRZEDMIOT
+)
+ORDER BY 1;	
+
+								
+-----106
+
+SELECT nazwa_przedmiot, s.id_student, imie, nazwisko, COUNT(id_egzamin)
+FROM PRZEDMIOTY p
+INNER JOIN EGZAMINY e1 ON p.id_przedmiot = e1.id_przedmiot
+INNER JOIN STUDENCI s ON e1.id_student = s.id_student
+GROUP BY p.id_przedmiot, nazwa_przedmiot, s.id_student, imie, nazwisko
+HAVING COUNT(id_egzamin) = (SELECT MAX(COUNT(id_egzamin))
+FROM EGZAMINY e2
+WHERE e2.id_przedmiot = p.id_przedmiot
+GROUP BY id_student)
+	
+-----114
+
+SELECT EXTRACT(YEAR FROM data_egzamin) AS "Rok", EXTRACT(MONTH FROM data_egzamin) AS "Miesiac", TO_CHAR(data_egzamin, 'month'), COUNT(id_egzamin)
+FROM egzaminy e
+GROUP BY EXTRACT(YEAR FROM data_egzamin), EXTRACT(MONTH FROM data_egzamin), TO_CHAR(data_egzamin, 'month')
+HAVING COUNT(id_egzamin) =
+(SELECT MAX(COUNT(id_egzamin))
+FROM egzaminy e2
+WHERE EXTRACT(YEAR FROM e.data_egzamin) = EXTRACT(YEAR FROM e2.data_egzamin)
+GROUP BY EXTRACT(YEAR FROM data_egzamin), EXTRACT(MONTH FROM data_egzamin))
+ORDER BY 1, 2

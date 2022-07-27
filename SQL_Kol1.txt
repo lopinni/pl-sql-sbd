@@ -1,0 +1,50 @@
+-----199
+
+CREATE OR REPLACE TRIGGER TR_Osrodki BEFORE DELETE ON Osrodki FOR EACH ROW
+    DECLARE
+        vEgz NUMBER;
+    BEGIN
+        SELECT COUNT(id_egzamin) INTO vEgz FROM egzaminy
+            WHERE id_osrodek = :OLD.id_osrodek;
+        IF vEgz > 0 THEN
+            DBMS_OUTPUT.PUT_LINE('Nie można usunac ośrodka, istnieja egzaminy pod tym id');
+        END IF;
+
+-----208
+
+DECLARE
+    CURSOR Cmuryjas IS SELECT e2.id_egzaminator, 
+        COUNT(DISTINCT e1.id_egzamin) AS legz
+        FROM egzaminy e1 RIGHT JOIN egzaminatorzy e2
+        ON e1.id_egzaminator = e2.id_egzaminator
+        WHERE LOWER(nazwisko) = 'muryjas' GROUP BY e2.id_egzaminator;
+BEGIN
+    FOR v IN Cmuryjas LOOP
+        BEGIN
+            DBMS_OUTPUT.PUT_LINE(v.id_egzaminator||' '||v.legz);
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Taki egzaminator nie istnieje');
+        END;
+    END LOOP;
+END;
+
+-----256
+
+DECLARE
+    CURSOR Cos IS SELECT id_osrodek, nazwa_osrodek FROM osrodki;
+    PROCEDURE CzyOdbyly(ido NUMBER, nazwa VARCHAR) IS
+        legz NUMBER;
+    BEGIN
+        SELECT COUNT(DISTINCT id_egzamin) INTO legz
+            FROM egzaminy WHERE id_osrodek = ido;
+        IF legz > 0 THEN 
+            DBMS_OUTPUT.PUT_LINE(ido||' '||nazwa);
+        END IF;
+    END CzyOdbyly;
+BEGIN
+    FOR v IN Cos LOOP
+        CzyOdbyly(v.id_osrodek,v.nazwa_osrodek);
+    END LOOP;
+END;
+	
